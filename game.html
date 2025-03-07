@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poker Game - Li's Site</title>
+    <title>Blackjack - Li's Site</title>
     <style>
         body {
             font-family: 'SF Pro Display', 'Arial', sans-serif;
-            background-color: #1a2a1a; /* Dark green poker table feel */
+            background-color: #1a2a1a; /* Dark green casino feel */
             color: #fff;
             text-align: center;
             padding: 20px;
@@ -22,20 +22,14 @@
         #game {
             display: none;
         }
-        .player {
-            border: 1px solid #fff;
+        .hand {
+            margin: 20px;
             padding: 10px;
-            margin: 5px;
-            display: inline-block;
-            width: 200px;
+            border: 1px solid #fff;
         }
         .cards {
             font-size: 24px;
             margin: 10px;
-        }
-        .community-cards {
-            margin: 20px;
-            font-size: 28px;
         }
         button {
             padding: 10px 20px;
@@ -49,9 +43,18 @@
         button:hover {
             background-color: #005bb5;
         }
-        #raiseInput {
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        input[type="number"] {
             padding: 5px;
-            width: 80px;
+            width: 100px;
+            margin: 5px;
+        }
+        #result {
+            font-size: 20px;
+            margin: 20px;
         }
     </style>
 </head>
@@ -59,37 +62,45 @@
     <div id="login">
         <h1>Enter Username</h1>
         <input type="text" id="username" placeholder="Your Username" maxlength="20">
-        <button onclick="joinGame()">Join Table</button>
+        <button onclick="startGame()">Join Game</button>
     </div>
 
     <div id="game">
-        <h1>Poker Table</h1>
-        <div id="players"></div>
-        <div class="community-cards" id="communityCards"></div>
-        <div id="pot">Pot: 0</div>
-        <div id="actions">
-            <button onclick="check()">Check</button>
-            <button onclick="call()">Call</button>
-            <input type="number" id="raiseInput" min="200" step="100" placeholder="Raise Amount">
-            <button onclick="raise()">Raise</button>
-            <button onclick="fold()">Fold</button>
-            <button onclick="startNewHand()">New Hand (Debug)</button>
+        <h1>Blackjack</h1>
+        <div id="chips">Chips: 20000</div>
+        <div id="betOptions">
+            <h2>Place Your Bet</h2>
+            <button onclick="placeBet(1000)">1000</button>
+            <button onclick="placeBet(5000)">5000</button>
+            <button onclick="placeBet(10000)">10000</button>
+            <input type="number" id="customBet" min="1" step="1" placeholder="Custom Bet">
+            <button onclick="placeCustomBet()">Bet Custom</button>
         </div>
-        <div id="message"></div>
+        <div id="gameArea" style="display: none;">
+            <div class="hand">
+                <h2>Dealer's Hand</h2>
+                <div id="dealerCards" class="cards"></div>
+                <div id="dealerTotal"></div>
+            </div>
+            <div class="hand">
+                <h2>Your Hand</h2>
+                <div id="playerCards" class="cards"></div>
+                <div id="playerTotal"></div>
+            </div>
+            <div id="actions">
+                <button id="hitBtn" onclick="hit()">Hit</button>
+                <button id="standBtn" onclick="stand()">Stand</button>
+                <button id="doubleBtn" onclick="double()">Double</button>
+            </div>
+        </div>
+        <div id="result"></div>
     </div>
 
     <script>
-        let players = [];
-        let currentPlayer = null;
+        let player = { username: '', chips: 20000, hand: [] };
+        let dealer = { hand: [] };
         let deck = [];
-        let communityCards = [];
-        let pot = 0;
         let currentBet = 0;
-        let smallBlind = 100;
-        let bigBlind = 200;
-        let dealerIndex = 0;
-
-        // Card deck setup (no jokers)
         const suits = ['♠', '♣', '♥', '♦'];
         const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
@@ -110,170 +121,151 @@
             }
         }
 
-        function joinGame() {
+        function startGame() {
             const username = document.getElementById('username').value.trim();
-            if (username && !players.some(p => p.name === username)) {
-                players.push({
-                    name: username,
-                    chips: 20000,
-                    hand: [],
-                    inHand: true,
-                    bet: 0
-                });
+            if (username) {
+                player.username = username;
                 document.getElementById('login').style.display = 'none';
                 document.getElementById('game').style.display = 'block';
-                currentPlayer = players[players.length - 1];
-                updateTable();
-                if (players.length >= 2 && communityCards.length === 0) startNewHand();
+                document.getElementById('chips').textContent = `Chips: ${player.chips}`;
             } else {
-                alert('Enter a unique username!');
+                alert('Please enter a username!');
             }
         }
 
-        function startNewHand() {
-            if (players.filter(p => p.chips > 0).length < 2) {
-                document.getElementById('message').textContent = 'Not enough players with chips!';
-                return;
+        function placeBet(amount) {
+            if (player.chips >= amount) {
+                currentBet = amount;
+                player.chips -= currentBet;
+                startHand();
+            } else {
+                alert('Not enough chips!');
             }
+        }
+
+        function placeCustomBet() {
+            const customBet = parseInt(document.getElementById('customBet').value);
+            if (isNaN(customBet) || customBet <= 0) {
+                alert('Enter a valid bet amount!');
+            } else if (customBet > player.chips) {
+                alert('Not enough chips!');
+            } else {
+                currentBet = customBet;
+                player.chips -= currentBet;
+                startHand();
+            }
+        }
+
+        function startHand() {
             initDeck();
-            communityCards = [];
-            pot = 0;
-            currentBet = 0;
-            players.forEach(p => {
-                if (p.chips > 0) {
-                    p.hand = [deck.pop(), deck.pop()];
-                    p.inHand = true;
-                    p.bet = 0;
+            player.hand = [deck.pop(), deck.pop()];
+            dealer.hand = [deck.pop(), deck.pop()];
+            document.getElementById('betOptions').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block';
+            document.getElementById('doubleBtn').disabled = player.chips < currentBet;
+            updateDisplay();
+            checkPlayerBust();
+        }
+
+        function calculateHand(hand) {
+            let total = 0;
+            let aces = 0;
+            hand.forEach(card => {
+                const value = card.slice(0, -1);
+                if (value === 'A') {
+                    aces++;
+                    total += 11;
+                } else if (['J', 'Q', 'K'].includes(value)) {
+                    total += 10;
                 } else {
-                    p.inHand = false;
+                    total += parseInt(value);
                 }
             });
-
-            // Blinds
-            const smallBlindIndex = (dealerIndex + 1) % players.length;
-            const bigBlindIndex = (dealerIndex + 2) % players.length;
-            players[smallBlindIndex].bet = Math.min(smallBlind, players[smallBlindIndex].chips);
-            players[smallBlindIndex].chips -= players[smallBlindIndex].bet;
-            players[bigBlindIndex].bet = Math.min(bigBlind, players[bigBlindIndex].chips);
-            players[bigBlindIndex].chips -= players[bigBlindIndex].bet;
-            pot = players[smallBlindIndex].bet + players[bigBlindIndex].bet;
-            currentBet = bigBlind;
-
-            updateTable();
-            dealFlop();
+            while (total > 21 && aces > 0) {
+                total -= 10;
+                aces--;
+            }
+            return total;
         }
 
-        function dealFlop() {
-            communityCards = [deck.pop(), deck.pop(), deck.pop()];
-            updateTable();
+        function updateDisplay() {
+            document.getElementById('dealerCards').textContent = `${dealer.hand[0]} ??`;
+            document.getElementById('dealerTotal').textContent = '';
+            document.getElementById('playerCards').textContent = player.hand.join(' ');
+            document.getElementById('playerTotal').textContent = `Total: ${calculateHand(player.hand)}`;
+            document.getElementById('chips').textContent = `Chips: ${player.chips}`;
         }
 
-        function dealTurn() {
-            if (communityCards.length === 3) communityCards.push(deck.pop());
-            updateTable();
+        function checkPlayerBust() {
+            if (calculateHand(player.hand) > 21) {
+                endGame(false, 'You bust!');
+            }
         }
 
-        function dealRiver() {
-            if (communityCards.length === 4) communityCards.push(deck.pop());
-            updateTable();
-            setTimeout(evaluateHands, 1000); // Auto-evaluate after river
+        function hit() {
+            player.hand.push(deck.pop());
+            updateDisplay();
+            checkPlayerBust();
         }
 
-        function updateTable() {
-            const playersDiv = document.getElementById('players');
-            playersDiv.innerHTML = '';
-            players.forEach(p => {
-                const div = document.createElement('div');
-                div.className = 'player';
-                div.innerHTML = `${p.name}: ${p.chips} chips<br>${p.inHand && p === currentPlayer ? p.hand.join(' ') : '?? ??'}`;
-                if (p.bet > 0) div.innerHTML += `<br>Bet: ${p.bet}`;
-                playersDiv.appendChild(div);
-            });
-            document.getElementById('communityCards').textContent = communityCards.join(' ');
-            document.getElementById('pot').textContent = `Pot: ${pot}`;
+        function stand() {
+            document.getElementById('actions').style.display = 'none';
+            dealerPlay();
         }
 
-        function check() {
-            if (currentPlayer.bet === currentBet) {
-                nextTurn();
+        function double() {
+            if (player.chips >= currentBet) {
+                player.chips -= currentBet;
+                currentBet *= 2;
+                player.hand.push(deck.pop());
+                updateDisplay();
+                checkPlayerBust();
+                if (calculateHand(player.hand) <= 21) stand();
+            }
+        }
+
+        function dealerPlay() {
+            document.getElementById('dealerCards').textContent = dealer.hand.join(' ');
+            let dealerTotal = calculateHand(dealer.hand);
+            document.getElementById('dealerTotal').textContent = `Total: ${dealerTotal}`;
+            while (dealerTotal < 17) {
+                dealer.hand.push(deck.pop());
+                document.getElementById('dealerCards').textContent = dealer.hand.join(' ');
+                dealerTotal = calculateHand(dealer.hand);
+                document.getElementById('dealerTotal').textContent = `Total: ${dealerTotal}`;
+            }
+            if (dealerTotal > 21) {
+                endGame(true, 'Dealer busts! You win!');
             } else {
-                document.getElementById('message').textContent = 'You must call or raise!';
+                const playerTotal = calculateHand(player.hand);
+                if (playerTotal > dealerTotal) {
+                    endGame(true, 'You win!');
+                } else if (playerTotal < dealerTotal) {
+                    endGame(false, 'Dealer wins!');
+                } else {
+                    endGame(null, 'Push!');
+                }
             }
         }
 
-        function call() {
-            const toCall = currentBet - currentPlayer.bet;
-            if (toCall > currentPlayer.chips) {
-                pot += currentPlayer.chips;
-                currentPlayer.bet += currentPlayer.chips;
-                currentPlayer.chips = 0;
-            } else {
-                pot += toCall;
-                currentPlayer.chips -= toCall;
-                currentPlayer.bet = currentBet;
+        function endGame(playerWins, message) {
+            document.getElementById('actions').style.display = 'none';
+            document.getElementById('dealerCards').textContent = dealer.hand.join(' ');
+            document.getElementById('dealerTotal').textContent = `Total: ${calculateHand(dealer.hand)}`;
+            if (playerWins === true) {
+                const payout = player.hand.length === 2 && calculateHand(player.hand) === 21 ? currentBet * 1.5 : currentBet * 2;
+                player.chips += payout + currentBet;
+            } else if (playerWins === null) {
+                player.chips += currentBet; // Push returns bet
             }
-            nextTurn();
-        }
-
-        function raise() {
-            const raiseAmount = parseInt(document.getElementById('raiseInput').value);
-            if (raiseAmount < currentBet * 2 || isNaN(raiseAmount) || raiseAmount > currentPlayer.chips) {
-                document.getElementById('message').textContent = 'Invalid raise amount!';
-                return;
-            }
-            const toAdd = raiseAmount - currentPlayer.bet;
-            pot += toAdd;
-            currentPlayer.chips -= toAdd;
-            currentPlayer.bet = raiseAmount;
-            currentBet = raiseAmount;
-            nextTurn();
-        }
-
-        function fold() {
-            currentPlayer.inHand = false;
-            nextTurn();
-        }
-
-        function nextTurn() {
-            document.getElementById('message').textContent = '';
-            const activePlayers = players.filter(p => p.inHand && p.chips > 0);
-            if (activePlayers.length <= 1) {
-                evaluateHands();
-                return;
-            }
-            const currentIndex = players.indexOf(currentPlayer);
-            let nextIndex = (currentIndex + 1) % players.length;
-            while (!players[nextIndex].inHand || players[nextIndex].chips <= 0) {
-                nextIndex = (nextIndex + 1) % players.length;
-            }
-            currentPlayer = players[nextIndex];
-            updateTable();
-
-            if (activePlayers.every(p => p.bet === currentBet || p.chips === 0)) {
-                if (communityCards.length === 0) dealFlop();
-                else if (communityCards.length === 3) dealTurn();
-                else if (communityCards.length === 4) dealRiver();
+            document.getElementById('chips').textContent = `Chips: ${player.chips}`;
+            document.getElementById('result').textContent = `${message} Bet: ${currentBet}`;
+            document.getElementById('betOptions').style.display = 'block';
+            document.getElementById('gameArea').style.display = 'none';
+            if (player.chips === 0) {
+                document.getElementById('betOptions').innerHTML = '<h2>Game Over! You\'re out of chips.</h2>';
             }
         }
-
-        function evaluateHands() {
-            const activePlayers = players.filter(p => p.inHand && p.chips > 0);
-            if (activePlayers.length === 1) {
-                activePlayers[0].chips += pot;
-                pot = 0;
-            } else {
-                const hands = activePlayers.map(p => [...p.hand, ...communityCards]);
-                const winner = activePlayers[0]; // Simplified: first active player wins (add real hand evaluation later)
-                winner.chips += pot;
-                pot = 0;
-            }
-            dealerIndex = (dealerIndex + 1) % players.length;
-            updateTable();
-            document.getElementById('message').textContent = 'Hand over. Start a new hand!';
-        }
-
-        // Placeholder hand evaluation (simplified)
-        // For full Texas Hold'em hand ranking, use a library or implement poker logic
     </script>
 </body>
 </html>

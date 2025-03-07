@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'SF Pro Display', 'Arial', sans-serif;
-            background-color: #1a2a1a; /* Dark green casino feel */
+            background-color: #1a2a1a;
             color: #fff;
             text-align: center;
             padding: 20px;
@@ -157,12 +157,20 @@
         }
 
         function startHand() {
+            // Reset hands and UI for new game
+            player.hand = [];
+            dealer.hand = [];
+            document.getElementById('result').textContent = '';
+            document.getElementById('actions').style.display = 'block';
+            document.getElementById('hitBtn').disabled = false;
+            document.getElementById('standBtn').disabled = false;
+            document.getElementById('doubleBtn').disabled = player.chips < currentBet;
+
             initDeck();
             player.hand = [deck.pop(), deck.pop()];
             dealer.hand = [deck.pop(), deck.pop()];
             document.getElementById('betOptions').style.display = 'none';
             document.getElementById('gameArea').style.display = 'block';
-            document.getElementById('doubleBtn').disabled = player.chips < currentBet;
             updateDisplay();
             checkPlayerBust();
         }
@@ -189,7 +197,7 @@
         }
 
         function updateDisplay() {
-            document.getElementById('dealerCards').textContent = `${dealer.hand[0]} ??`;
+            document.getElementById('dealerCards').textContent = dealer.hand.length > 0 ? `${dealer.hand[0]} ??` : '';
             document.getElementById('dealerTotal').textContent = '';
             document.getElementById('playerCards').textContent = player.hand.join(' ');
             document.getElementById('playerTotal').textContent = `Total: ${calculateHand(player.hand)}`;
@@ -198,7 +206,7 @@
 
         function checkPlayerBust() {
             if (calculateHand(player.hand) > 21) {
-                endGame(false, 'You bust!');
+                endGame(false, 'You bust! Dealer wins!');
             }
         }
 
@@ -255,13 +263,16 @@
             if (playerWins === true) {
                 const payout = player.hand.length === 2 && calculateHand(player.hand) === 21 ? currentBet * 1.5 : currentBet * 2;
                 player.chips += payout + currentBet;
+                document.getElementById('result').textContent = `${message} (+${payout + currentBet} chips)`;
             } else if (playerWins === null) {
-                player.chips += currentBet; // Push returns bet
+                player.chips += currentBet;
+                document.getElementById('result').textContent = `${message} (Bet returned: ${currentBet} chips)`;
+            } else {
+                document.getElementById('result').textContent = `${message} (-${currentBet} chips)`;
             }
             document.getElementById('chips').textContent = `Chips: ${player.chips}`;
-            document.getElementById('result').textContent = `${message} Bet: ${currentBet}`;
             document.getElementById('betOptions').style.display = 'block';
-            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block'; // Keep hands visible
             if (player.chips === 0) {
                 document.getElementById('betOptions').innerHTML = '<h2>Game Over! You\'re out of chips.</h2>';
             }

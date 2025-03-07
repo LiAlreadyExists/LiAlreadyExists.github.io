@@ -174,7 +174,6 @@
             document.getElementById('gameArea').style.display = 'block';
             updateDisplay();
 
-            // Check for any blackjack
             const dealerTotal = calculateHand(dealer.hand);
             const playerTotal = calculateHand(player.hand);
             if (dealerTotal === 21 && dealer.hand.length === 2) {
@@ -292,8 +291,30 @@
             document.getElementById('betOptions').style.display = 'block';
             document.getElementById('gameArea').style.display = 'block';
             if (player.chips === 0) {
-                document.getElementById('betOptions').innerHTML = '<h2>Game Over! You\'re out of chips.</h2>';
+                document.getElementById('betOptions').innerHTML = `
+                    <h2>Game Over! You're out of chips.</h2>
+                    <button onclick="restartGame()">Restart with 20000 Chips</button>
+                `;
             }
+        }
+
+        function restartGame() {
+            player.chips = 20000;
+            player.hand = [];
+            dealer.hand = [];
+            currentBet = 0;
+            hasHit = false;
+            document.getElementById('result').textContent = '';
+            document.getElementById('betOptions').innerHTML = `
+                <h2>Place Your Bet</h2>
+                <button onclick="placeBet(1000)">1000</button>
+                <button onclick="placeBet(5000)">5000</button>
+                <button onclick="placeBet(10000)">10000</button>
+                <input type="number" id="customBet" min="1" step="1" placeholder="Custom Bet">
+                <button onclick="placeCustomBet()">Bet Custom</button>
+            `;
+            document.getElementById('chips').textContent = `Chips: ${player.chips}`;
+            document.getElementById('gameArea').style.display = 'none';
         }
     </script>
 </body>

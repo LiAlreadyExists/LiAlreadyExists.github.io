@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Game - Li's Site</title>
+    <style>
+        body {
+            font-family: 'SF Pro Display', 'Arial', sans-serif;
+            background-color: #1a2a1a; /* Dark green poker table feel */
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+        #login, #game {
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        #login {
+            display: block;
+        }
+        #game {
+            display: none;
+        }
+        .player {
+            border: 1px solid #fff;
+            padding: 10px;
+            margin: 5px;
+            display: inline-block;
+            width: 200px;
+        }
+        .cards {
+            font-size: 24px;
+            margin: 10px;
+        }
+        .community-cards {
+            margin: 20px;
+            font-size: 28px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #0071e3;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #005bb5;
+        }
+        #raiseInput {
+            padding: 5px;
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div id="login">
+        <h1>Enter Username</h1>
+        <input type="text" id="username" placeholder="Your Username" maxlength="20">
+        <button onclick="joinGame()">Join Table</button>
+    </div>
+
+    <div id="game">
+        <h1>Poker Table</h1>
+        <div id="players"></div>
+        <div class="community-cards" id="communityCards"></div>
+        <div id="pot">Pot: 0</div>
+        <div id="actions">
+            <button onclick="check()">Check</button>
+            <button onclick="call()">Call</button>
+            <input type="number" id="raiseInput" min="200" step="100" placeholder="Raise Amount">
+            <button onclick="raise()">Raise</button>
+            <button onclick="fold()">Fold</button>
+            <button onclick="startNewHand()">New Hand (Debug)</button>
+        </div>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        let players = [];
+        let currentPlayer = null;
+        let deck = [];
+        let communityCards = [];
+        let pot = 0;
+        let currentBet = 0;
+        let smallBlind = 100;
+        let bigBlind = 200;
+        let dealerIndex = 0;
+
+        // Card deck setup (no jokers)
+        const suits = ['♠', '♣', '♥', '♦'];
+        const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+        function initDeck() {
+            deck = [];
+            for (let suit of suits) {
+                for (let rank of ranks) {
+                    deck.push(rank + suit);
+                }
+            }
+            shuffle(deck);
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function joinGame() {
+            const username = document.getElementById('username').value.trim();
+            if (username && !players.some(p => p.name === username)) {
+                players.push({
+                    name: username,
+                    chips: 20000,
+                    hand: [],
+                    inHand: true,
+                    bet: 0
+                });
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('game').style.display = 'block';
+                currentPlayer = players[players.length - 1];
+                updateTable();
+                if (players.length >= 2 && communityCards.length === 0) startNewHand();
+            } else {
+                alert('Enter a unique username!');
+            }
+        }
+
+        function startNewHand() {
+            if (players.filter(p => p.chips > 0).length < 2) {
+                document.getElementById('message').textContent = 'Not enough players with chips!';
+                return;
+            }
+            initDeck();
+            communityCards = [];
+            pot = 0;
+            currentBet = 0;
+            players.forEach(p => {
+                if (p.chips > 0) {
+                    p.hand = [deck.pop(), deck.pop()];
+                    p.inHand = true;
+                    p.bet = 0;
+                } else {
+                    p.inHand = false;
+                }
+            });
+
+            // Blinds
+            const smallBlindIndex = (dealerIndex + 1) % players.length;
+            const bigBlindIndex = (dealerIndex + 2) % players.length;
+            players[smallBlindIndex].bet = Math.min(smallBlind, players[smallBlindIndex].chips);
+            players[smallBlindIndex].chips -= players[smallBlindIndex].bet;
+            players[bigBlindIndex].bet = Math.min(bigBlind, players[bigBlindIndex].chips);
+            players[bigBlindIndex].chips -= players[bigBlindIndex].bet;
+            pot = players[smallBlindIndex].bet + players[bigBlindIndex].bet;
+            currentBet = bigBlind;
+
+            updateTable();
+            dealFlop();
+        }
+
+        function dealFlop() {
+            communityCards = [deck.pop(), deck.pop(), deck.pop()];
+            updateTable();
+        }
+
+        function dealTurn() {
+            if (communityCards.length === 3) communityCards.push(deck.pop());
+            updateTable();
+        }
+
+        function dealRiver() {
+            if (communityCards.length === 4) communityCards.push(deck.pop());
+            updateTable();
+            setTimeout(evaluateHands, 1000); // Auto-evaluate after river
+        }
+
+        function updateTable() {
+            const playersDiv = document.getElementById('players');
+            playersDiv.innerHTML = '';
+            players.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'player';
+                div.innerHTML = `${p.name}: ${p.chips} chips<br>${p.inHand && p === currentPlayer ? p.hand.join(' ') : '?? ??'}`;
+                if (p.bet > 0) div.innerHTML += `<br>Bet: ${p.bet}`;
+                playersDiv.appendChild(div);
+            });
+            document.getElementById('communityCards').textContent = communityCards.join(' ');
+            document.getElementById('pot').textContent = `Pot: ${pot}`;
+        }
+
+        function check() {
+            if (currentPlayer.bet === currentBet) {
+                nextTurn();
+            } else {
+                document.getElementById('message').textContent = 'You must call or raise!';
+            }
+        }
+
+        function call() {
+            const toCall = currentBet - currentPlayer.bet;
+            if (toCall > currentPlayer.chips) {
+                pot += currentPlayer.chips;
+                currentPlayer.bet += currentPlayer.chips;
+                currentPlayer.chips = 0;
+            } else {
+                pot += toCall;
+                currentPlayer.chips -= toCall;
+                currentPlayer.bet = currentBet;
+            }
+            nextTurn();
+        }
+
+        function raise() {
+            const raiseAmount = parseInt(document.getElementById('raiseInput').value);
+            if (raiseAmount < currentBet * 2 || isNaN(raiseAmount) || raiseAmount > currentPlayer.chips) {
+                document.getElementById('message').textContent = 'Invalid raise amount!';
+                return;
+            }
+            const toAdd = raiseAmount - currentPlayer.bet;
+            pot += toAdd;
+            currentPlayer.chips -= toAdd;
+            currentPlayer.bet = raiseAmount;
+            currentBet = raiseAmount;
+            nextTurn();
+        }
+
+        function fold() {
+            currentPlayer.inHand = false;
+            nextTurn();
+        }
+
+        function nextTurn() {
+            document.getElementById('message').textContent = '';
+            const activePlayers = players.filter(p => p.inHand && p.chips > 0);
+            if (activePlayers.length <= 1) {
+                evaluateHands();
+                return;
+            }
+            const currentIndex = players.indexOf(currentPlayer);
+            let nextIndex = (currentIndex + 1) % players.length;
+            while (!players[nextIndex].inHand || players[nextIndex].chips <= 0) {
+                nextIndex = (nextIndex + 1) % players.length;
+            }
+            currentPlayer = players[nextIndex];
+            updateTable();
+
+            if (activePlayers.every(p => p.bet === currentBet || p.chips === 0)) {
+                if (communityCards.length === 0) dealFlop();
+                else if (communityCards.length === 3) dealTurn();
+                else if (communityCards.length === 4) dealRiver();
+            }
+        }
+
+        function evaluateHands() {
+            const activePlayers = players.filter(p => p.inHand && p.chips > 0);
+            if (activePlayers.length === 1) {
+                activePlayers[0].chips += pot;
+                pot = 0;
+            } else {
+                const hands = activePlayers.map(p => [...p.hand, ...communityCards]);
+                const winner = activePlayers[0]; // Simplified: first active player wins (add real hand evaluation later)
+                winner.chips += pot;
+                pot = 0;
+            }
+            dealerIndex = (dealerIndex + 1) % players.length;
+            updateTable();
+            document.getElementById('message').textContent = 'Hand over. Start a new hand!';
+        }
+
+        // Placeholder hand evaluation (simplified)
+        // For full Texas Hold'em hand ranking, use a library or implement poker logic
+    </script>
+</body>
+</html>

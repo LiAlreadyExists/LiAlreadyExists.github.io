@@ -171,6 +171,18 @@
             document.getElementById('betOptions').style.display = 'none';
             document.getElementById('gameArea').style.display = 'block';
             updateDisplay();
+
+            // Check for dealer blackjack
+            const dealerTotal = calculateHand(dealer.hand);
+            const playerTotal = calculateHand(player.hand);
+            if (dealerTotal === 21 && dealer.hand.length === 2) {
+                if (playerTotal === 21 && player.hand.length === 2) {
+                    endGame(null, 'Push! Both have Blackjack!');
+                } else {
+                    endGame(false, 'Dealer has Blackjack! Dealer wins!');
+                }
+                return; // End the hand immediately
+            }
             checkPlayerBust();
         }
 

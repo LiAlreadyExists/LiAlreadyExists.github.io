@@ -157,7 +157,6 @@
         }
 
         function startHand() {
-            // Reset hands and UI for new game
             player.hand = [];
             dealer.hand = [];
             document.getElementById('result').textContent = '';
@@ -261,7 +260,7 @@
             document.getElementById('dealerCards').textContent = dealer.hand.join(' ');
             document.getElementById('dealerTotal').textContent = `Total: ${calculateHand(dealer.hand)}`;
             if (playerWins === true) {
-                const payout = player.hand.length === 2 && calculateHand(player.hand) === 21 ? currentBet * 1.5 : currentBet * 2;
+                const payout = player.hand.length === 2 && calculateHand(player.hand) === 21 ? currentBet * 1.5 : currentBet;
                 player.chips += payout + currentBet;
                 document.getElementById('result').textContent = `${message} (+${payout + currentBet} chips)`;
             } else if (playerWins === null) {
@@ -272,7 +271,7 @@
             }
             document.getElementById('chips').textContent = `Chips: ${player.chips}`;
             document.getElementById('betOptions').style.display = 'block';
-            document.getElementById('gameArea').style.display = 'block'; // Keep hands visible
+            document.getElementById('gameArea').style.display = 'block';
             if (player.chips === 0) {
                 document.getElementById('betOptions').innerHTML = '<h2>Game Over! You\'re out of chips.</h2>';
             }

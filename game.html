@@ -101,6 +101,7 @@
         let dealer = { hand: [] };
         let deck = [];
         let currentBet = 0;
+        let hasHit = false; // Track if player has hit this round
         const suits = ['♠', '♣', '♥', '♦'];
         const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
@@ -159,11 +160,12 @@
         function startHand() {
             player.hand = [];
             dealer.hand = [];
+            hasHit = false; // Reset hasHit for new round
             document.getElementById('result').textContent = '';
             document.getElementById('actions').style.display = 'block';
             document.getElementById('hitBtn').disabled = false;
             document.getElementById('standBtn').disabled = false;
-            document.getElementById('doubleBtn').disabled = player.chips < currentBet;
+            document.getElementById('doubleBtn').disabled = player.chips < currentBet; // Enable Double if chips allow
 
             initDeck();
             player.hand = [deck.pop(), deck.pop()];
@@ -181,7 +183,7 @@
                 } else {
                     endGame(false, 'Dealer has Blackjack! Dealer wins!');
                 }
-                return; // End the hand immediately
+                return;
             }
             checkPlayerBust();
         }
@@ -223,6 +225,8 @@
 
         function hit() {
             player.hand.push(deck.pop());
+            hasHit = true; // Mark that player has hit
+            document.getElementById('doubleBtn').disabled = true; // Disable Double after Hit
             updateDisplay();
             checkPlayerBust();
         }
@@ -233,7 +237,7 @@
         }
 
         function double() {
-            if (player.chips >= currentBet) {
+            if (player.chips >= currentBet && !hasHit) { // Only allow if not hit yet
                 player.chips -= currentBet;
                 currentBet *= 2;
                 player.hand.push(deck.pop());

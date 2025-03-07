@@ -101,7 +101,7 @@
         let dealer = { hand: [] };
         let deck = [];
         let currentBet = 0;
-        let hasHit = false; // Track if player has hit this round
+        let hasHit = false;
         const suits = ['♠', '♣', '♥', '♦'];
         const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
@@ -160,12 +160,12 @@
         function startHand() {
             player.hand = [];
             dealer.hand = [];
-            hasHit = false; // Reset hasHit for new round
+            hasHit = false;
             document.getElementById('result').textContent = '';
             document.getElementById('actions').style.display = 'block';
             document.getElementById('hitBtn').disabled = false;
             document.getElementById('standBtn').disabled = false;
-            document.getElementById('doubleBtn').disabled = player.chips < currentBet; // Enable Double if chips allow
+            document.getElementById('doubleBtn').disabled = player.chips < currentBet;
 
             initDeck();
             player.hand = [deck.pop(), deck.pop()];
@@ -174,7 +174,7 @@
             document.getElementById('gameArea').style.display = 'block';
             updateDisplay();
 
-            // Check for dealer blackjack
+            // Check for any blackjack
             const dealerTotal = calculateHand(dealer.hand);
             const playerTotal = calculateHand(player.hand);
             if (dealerTotal === 21 && dealer.hand.length === 2) {
@@ -183,6 +183,9 @@
                 } else {
                     endGame(false, 'Dealer has Blackjack! Dealer wins!');
                 }
+                return;
+            } else if (playerTotal === 21 && player.hand.length === 2) {
+                endGame(true, 'You have Blackjack! You win!');
                 return;
             }
             checkPlayerBust();
@@ -225,8 +228,8 @@
 
         function hit() {
             player.hand.push(deck.pop());
-            hasHit = true; // Mark that player has hit
-            document.getElementById('doubleBtn').disabled = true; // Disable Double after Hit
+            hasHit = true;
+            document.getElementById('doubleBtn').disabled = true;
             updateDisplay();
             checkPlayerBust();
         }
@@ -237,7 +240,7 @@
         }
 
         function double() {
-            if (player.chips >= currentBet && !hasHit) { // Only allow if not hit yet
+            if (player.chips >= currentBet && !hasHit) {
                 player.chips -= currentBet;
                 currentBet *= 2;
                 player.hand.push(deck.pop());

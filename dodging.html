@@ -73,7 +73,7 @@
         /* Casts (Lines) */
         .cast {
             position: absolute;
-            background-color: #000000; /* Black casts */
+            background-color: #000000;
             transform-origin: 0 0;
         }
 
@@ -191,9 +191,9 @@
         let startTime;
         let timerInterval;
         let castSpawnInterval;
-        const playerSpeed = 50; // Pixels per second (slower)
-        const castLength = 50; // Shorter casts
-        const castSpeed = 150; // Pixels per second (constant for all)
+        const playerSpeed = 50;
+        const castLength = 50;
+        const castSpeed = 150;
 
         // Initial player position
         player.style.left = `${playerX}px`;
@@ -203,7 +203,7 @@
         gameContainer.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             if (gameActive) {
-                targetX = e.clientX - 10; // Offset by half player size
+                targetX = e.clientX - 10;
                 targetY = e.clientY - 10;
             }
         });
@@ -237,16 +237,31 @@
         function spawnCasts(rate) {
             castSpawnInterval = setInterval(() => {
                 if (!gameActive) return;
-                const angle = Math.random() * 2 * Math.PI;
-                let startX, startY;
 
-                // Spawn from edges
-                if (Math.random() < 0.5) {
-                    startX = Math.random() * window.innerWidth;
-                    startY = Math.random() < 0.5 ? -castLength : window.innerHeight;
-                } else {
-                    startX = Math.random() < 0.5 ? -castLength : window.innerWidth;
-                    startY = Math.random() * window.innerHeight;
+                const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+                let startX, startY, angle;
+
+                switch (side) {
+                    case 0: // Top
+                        startX = Math.random() * window.innerWidth;
+                        startY = -castLength;
+                        angle = Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 2; // Downward ±45°
+                        break;
+                    case 1: // Right
+                        startX = window.innerWidth + castLength;
+                        startY = Math.random() * window.innerHeight;
+                        angle = Math.PI + (Math.random() - 0.5) * Math.PI / 2; // Leftward ±45°
+                        break;
+                    case 2: // Bottom
+                        startX = Math.random() * window.innerWidth;
+                        startY = window.innerHeight + castLength;
+                        angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 2; // Upward ±45°
+                        break;
+                    case 3: // Left
+                        startX = -castLength;
+                        startY = Math.random() * window.innerHeight;
+                        angle = (Math.random() - 0.5) * Math.PI / 2; // Rightward ±45°
+                        break;
                 }
 
                 const cast = document.createElement('div');
@@ -270,8 +285,8 @@
             const dx = targetX - playerX;
             const dy = targetY - playerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance > 1) { // Stop if close enough
-                const step = playerSpeed / 60; // Speed per frame (60 FPS)
+            if (distance > 1) {
+                const step = playerSpeed / 60;
                 const moveX = (dx / distance) * step;
                 const moveY = (dy / distance) * step;
                 playerX += Math.abs(moveX) < Math.abs(dx) ? moveX : dx;

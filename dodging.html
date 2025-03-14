@@ -17,7 +17,7 @@
             background-color: #000;
             color: #fff;
             text-align: center;
-            overflow: hidden; /* Prevent scrolling */
+            overflow: hidden;
         }
 
         /* Navigation Bar */
@@ -68,14 +68,13 @@
             height: 20px;
             background-color: #0071e3;
             border-radius: 50%;
-            transition: all 0.2s ease; /* Smooth movement */
         }
 
         /* Casts (Lines) */
         .cast {
             position: absolute;
-            background-color: #ff0000;
-            transform-origin: 0 0; /* Rotate from start point */
+            background-color: #000000; /* Black casts */
+            transform-origin: 0 0;
         }
 
         /* Start Screen */
@@ -183,26 +182,29 @@
         const castRateInput = document.getElementById('castRate');
         const timerDisplay = document.getElementById('timerDisplay');
 
-        let playerX = window.innerWidth / 2 - 10; // Center horizontally
-        let playerY = window.innerHeight / 2 - 10; // Center vertically
+        let playerX = window.innerWidth / 2 - 10;
+        let playerY = window.innerHeight / 2 - 10;
+        let targetX = playerX;
+        let targetY = playerY;
         let gameActive = false;
         let casts = [];
         let startTime;
         let timerInterval;
         let castSpawnInterval;
+        const playerSpeed = 50; // Pixels per second (slower)
+        const castLength = 50; // Shorter casts
+        const castSpeed = 150; // Pixels per second (constant for all)
 
         // Initial player position
         player.style.left = `${playerX}px`;
         player.style.top = `${playerY}px`;
 
-        // Move player on right-click
+        // Move player toward target on right-click
         gameContainer.addEventListener('contextmenu', (e) => {
-            e.preventDefault(); // Prevent context menu
+            e.preventDefault();
             if (gameActive) {
-                playerX = e.clientX - 10; // Offset by half player size
-                playerY = e.clientY - 10;
-                player.style.left = `${playerX}px`;
-                player.style.top = `${playerY}px`;
+                targetX = e.clientX - 10; // Offset by half player size
+                targetY = e.clientY - 10;
             }
         });
 
@@ -210,10 +212,10 @@
         startBtn.addEventListener('click', () => {
             gameActive = true;
             startScreen.style.display = 'none';
-            navBar.style.display = 'none'; // Hide nav bar
+            navBar.style.display = 'none';
             startTime = Date.now();
-            timerInterval = setInterval(updateTimer, 10); // Update timer every 10ms
-            const castRate = parseFloat(castRateInput.value); // Casts per second
+            timerInterval = setInterval(updateTimer, 10);
+            const castRate = parseFloat(castRateInput.value);
             spawnCasts(castRate);
         });
 
@@ -222,12 +224,12 @@
             resetGame();
             startScreen.style.display = 'block';
             endScreen.style.display = 'none';
-            navBar.style.display = 'block'; // Show nav bar
+            navBar.style.display = 'block';
         });
 
         // Update timer
         function updateTimer() {
-            const elapsed = (Date.now() - startTime) / 1000; // Seconds
+            const elapsed = (Date.now() - startTime) / 1000;
             timerDisplay.textContent = `Time: ${elapsed.toFixed(2)}s`;
         }
 
@@ -235,43 +237,53 @@
         function spawnCasts(rate) {
             castSpawnInterval = setInterval(() => {
                 if (!gameActive) return;
-                const angle = Math.random() * 2 * Math.PI; // Random angle
-                const speed = 200; // Pixels per second
-                const length = 100; // Cast length in pixels
+                const angle = Math.random() * 2 * Math.PI;
                 let startX, startY;
 
-                // Randomly spawn from edges
+                // Spawn from edges
                 if (Math.random() < 0.5) {
-                    // Top or bottom
                     startX = Math.random() * window.innerWidth;
-                    startY = Math.random() < 0.5 ? -length : window.innerHeight;
+                    startY = Math.random() < 0.5 ? -castLength : window.innerHeight;
                 } else {
-                    // Left or right
-                    startX = Math.random() < 0.5 ? -length : window.innerWidth;
+                    startX = Math.random() < 0.5 ? -castLength : window.innerWidth;
                     startY = Math.random() * window.innerHeight;
                 }
 
                 const cast = document.createElement('div');
                 cast.className = 'cast';
-                cast.style.width = `${length}px`;
+                cast.style.width = `${castLength}px`;
                 cast.style.height = '2px';
                 cast.style.left = `${startX}px`;
                 cast.style.top = `${startY}px`;
                 cast.style.transform = `rotate(${angle * 180 / Math.PI}deg)`;
                 gameContainer.appendChild(cast);
 
-                casts.push({ element: cast, x: startX, y: startY, angle, speed });
-            }, 1000 / rate); // Convert rate to interval in ms
+                casts.push({ element: cast, x: startX, y: startY, angle });
+            }, 1000 / rate);
         }
 
         // Game loop
         function gameLoop() {
             if (!gameActive) return;
 
+            // Move player toward target
+            const dx = targetX - playerX;
+            const dy = targetY - playerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > 1) { // Stop if close enough
+                const step = playerSpeed / 60; // Speed per frame (60 FPS)
+                const moveX = (dx / distance) * step;
+                const moveY = (dy / distance) * step;
+                playerX += Math.abs(moveX) < Math.abs(dx) ? moveX : dx;
+                playerY += Math.abs(moveY) < Math.abs(dy) ? moveY : dy;
+                player.style.left = `${playerX}px`;
+                player.style.top = `${playerY}px`;
+            }
+
+            // Move casts
             casts.forEach((cast, index) => {
-                // Move cast
-                cast.x += Math.cos(cast.angle) * (cast.speed / 60); // 60 FPS
-                cast.y += Math.sin(cast.angle) * (cast.speed / 60);
+                cast.x += Math.cos(cast.angle) * (castSpeed / 60);
+                cast.y += Math.sin(cast.angle) * (castSpeed / 60);
                 cast.element.style.left = `${cast.x}px`;
                 cast.element.style.top = `${cast.y}px`;
 
@@ -283,9 +295,13 @@
                     return;
                 }
 
-                // Remove casts that leave screen
-                if (cast.x < -100 || cast.x > window.innerWidth + 100 || 
-                    cast.y < -100 || cast.y > window.innerHeight + 100) {
+                // Remove casts when fully off-screen
+                const endX = cast.x + castLength * Math.cos(cast.angle);
+                const endY = cast.y + castLength * Math.sin(cast.angle);
+                if (endX < 0 && cast.x < 0 || 
+                    endX > window.innerWidth && cast.x > window.innerWidth || 
+                    endY < 0 && cast.y < 0 || 
+                    endY > window.innerHeight && cast.y > window.innerHeight) {
                     cast.element.remove();
                     casts.splice(index, 1);
                 }
@@ -310,13 +326,15 @@
             casts.forEach(cast => cast.element.remove());
             casts = [];
             endScreen.style.display = 'block';
-            navBar.style.display = 'block'; // Show nav bar
+            navBar.style.display = 'block';
         }
 
         // Reset game
         function resetGame() {
             playerX = window.innerWidth / 2 - 10;
             playerY = window.innerHeight / 2 - 10;
+            targetX = playerX;
+            targetY = playerY;
             player.style.left = `${playerX}px`;
             player.style.top = `${playerY}px`;
             timerDisplay.textContent = 'Time: 0.00s';

@@ -68,7 +68,7 @@
 
         .cast {
             position: absolute;
-            background-color: #ffffff;
+            background-color: #ffffff; /* Changed to white */
             transform-origin: 0 0;
         }
 
@@ -182,9 +182,9 @@
         let startTime;
         let timerInterval;
         let castSpawnInterval;
-        const playerSpeed = 100;
+        const playerSpeed = 100; // Increased from 50 to 100
         const castLength = 50;
-        const castSpeed = 200;
+        const castSpeed = 200; // Increased from 150 to 200
 
         player.style.left = `${playerX}px`;
         player.style.top = `${playerY}px`;
@@ -214,10 +214,6 @@
             timerInterval = setInterval(updateTimer, 10);
             const castRate = parseFloat(castRateInput.value);
             spawnCasts(castRate);
-            // Ensure gameLoop is running (call it once to kickstart if not already)
-            if (!casts.length && distance(targetX, playerX, targetY, playerY) < 1) {
-                requestAnimationFrame(gameLoop);
-            }
         }
 
         function updateTimer() {
@@ -269,19 +265,16 @@
         }
 
         function gameLoop() {
-            if (!gameActive) {
-                requestAnimationFrame(gameLoop); // Keep loop alive even when inactive
-                return;
-            }
+            if (!gameActive) return;
 
             // Move player
             const dx = targetX - playerX;
             const dy = targetY - playerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance > 1) {
-                const speedPerFrame = playerSpeed / 60;
-                const moveX = (dx / distance) * speedPerFrame;
-                const moveY = (dy / distance) * speedPerFrame;
+                const step = playerSpeed / 60;
+                const moveX = (dx / distance) * step;
+                const moveY = (dy / distance) * step;
                 playerX += Math.abs(moveX) < Math.abs(dx) ? moveX : dx;
                 playerY += Math.abs(moveY) < Math.abs(dy) ? moveY : dy;
                 player.style.left = `${playerX}px`;
@@ -344,16 +337,8 @@
             player.style.left = `${playerX}px`;
             player.style.top = `${playerY}px`;
             timerDisplay.textContent = 'Time: 0.00s';
-            casts.forEach(cast => cast.element.remove());
-            casts = [];
         }
 
-        // Helper function to calculate distance
-        function distance(x1, x2, y1, y2) {
-            return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
-        }
-
-        // Start the game loop
         requestAnimationFrame(gameLoop);
     </script>
 </body>

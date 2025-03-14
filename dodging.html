@@ -184,7 +184,7 @@
         let castSpawnInterval;
         const playerSpeed = 100;
         const castLength = 50;
-        const castSpeed = 200; // Casts move at 200px/s, unaffected by player fix
+        const castSpeed = 200;
 
         player.style.left = `${playerX}px`;
         player.style.top = `${playerY}px`;
@@ -214,6 +214,10 @@
             timerInterval = setInterval(updateTimer, 10);
             const castRate = parseFloat(castRateInput.value);
             spawnCasts(castRate);
+            // Ensure gameLoop is running (call it once to kickstart if not already)
+            if (!casts.length && distance(targetX, playerX, targetY, playerY) < 1) {
+                requestAnimationFrame(gameLoop);
+            }
         }
 
         function updateTimer() {
@@ -265,9 +269,12 @@
         }
 
         function gameLoop() {
-            if (!gameActive) return;
+            if (!gameActive) {
+                requestAnimationFrame(gameLoop); // Keep loop alive even when inactive
+                return;
+            }
 
-            // Move player with consistent speed
+            // Move player
             const dx = targetX - playerX;
             const dy = targetY - playerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -281,7 +288,7 @@
                 player.style.top = `${playerY}px`;
             }
 
-            // Move casts (unchanged, confirmed consistent at 200px/s)
+            // Move casts
             for (let i = casts.length - 1; i >= 0; i--) {
                 const cast = casts[i];
                 cast.x += Math.cos(cast.angle) * (castSpeed / 60);
@@ -337,8 +344,16 @@
             player.style.left = `${playerX}px`;
             player.style.top = `${playerY}px`;
             timerDisplay.textContent = 'Time: 0.00s';
+            casts.forEach(cast => cast.element.remove());
+            casts = [];
         }
 
+        // Helper function to calculate distance
+        function distance(x1, x2, y1, y2) {
+            return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+        }
+
+        // Start the game loop
         requestAnimationFrame(gameLoop);
     </script>
 </body>

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dodging - Li's Site</title>
     <style>
-        /* Reset default styles */
         * {
             margin: 0;
             padding: 0;
@@ -20,7 +19,6 @@
             overflow: hidden;
         }
 
-        /* Navigation Bar */
         nav {
             background-color: rgba(0, 0, 0, 0.8);
             position: fixed;
@@ -53,7 +51,6 @@
             opacity: 1;
         }
 
-        /* Game Container */
         #gameContainer {
             position: relative;
             width: 100vw;
@@ -61,7 +58,6 @@
             background-color: #1a2a1a;
         }
 
-        /* Player */
         #player {
             position: absolute;
             width: 20px;
@@ -70,14 +66,12 @@
             border-radius: 50%;
         }
 
-        /* Casts (Lines) */
         .cast {
             position: absolute;
             background-color: #000000;
             transform-origin: 0 0;
         }
 
-        /* Start Screen */
         #startScreen {
             position: absolute;
             top: 50%;
@@ -111,7 +105,6 @@
             background-color: #005bb5;
         }
 
-        /* End Screen */
         #endScreen {
             position: absolute;
             top: 50%;
@@ -147,7 +140,6 @@
     </style>
 </head>
 <body>
-    <!-- Navigation Bar -->
     <nav id="navBar">
         <ul>
             <li><a href="/index.html">Home</a></li>
@@ -155,7 +147,6 @@
         </ul>
     </nav>
 
-    <!-- Game Container -->
     <div id="gameContainer">
         <div id="player"></div>
         <div id="startScreen">
@@ -195,11 +186,9 @@
         const castLength = 50;
         const castSpeed = 150;
 
-        // Initial player position
         player.style.left = `${playerX}px`;
         player.style.top = `${playerY}px`;
 
-        // Move player toward target on right-click
         gameContainer.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             if (gameActive) {
@@ -208,18 +197,8 @@
             }
         });
 
-        // Start game
-        startBtn.addEventListener('click', () => {
-            gameActive = true;
-            startScreen.style.display = 'none';
-            navBar.style.display = 'none';
-            startTime = Date.now();
-            timerInterval = setInterval(updateTimer, 10);
-            const castRate = parseFloat(castRateInput.value);
-            spawnCasts(castRate);
-        });
+        startBtn.addEventListener('click', startGame);
 
-        // Restart game
         restartBtn.addEventListener('click', () => {
             resetGame();
             startScreen.style.display = 'block';
@@ -227,40 +206,49 @@
             navBar.style.display = 'block';
         });
 
-        // Update timer
+        function startGame() {
+            gameActive = true;
+            startScreen.style.display = 'none';
+            navBar.style.display = 'none';
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 10);
+            const castRate = parseFloat(castRateInput.value);
+            spawnCasts(castRate);
+            gameLoop(); // Ensure game loop starts
+        }
+
         function updateTimer() {
             const elapsed = (Date.now() - startTime) / 1000;
             timerDisplay.textContent = `Time: ${elapsed.toFixed(2)}s`;
         }
 
-        // Spawn casts
         function spawnCasts(rate) {
             castSpawnInterval = setInterval(() => {
                 if (!gameActive) return;
 
-                const side = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+                const side = Math.floor(Math.random() * 4);
                 let startX, startY, angle;
 
                 switch (side) {
                     case 0: // Top
                         startX = Math.random() * window.innerWidth;
                         startY = -castLength;
-                        angle = Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 2; // Downward ±45°
+                        angle = Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 2;
                         break;
                     case 1: // Right
-                        startX = window.innerWidth + castLength;
+                        startX = window.innerWidth;
                         startY = Math.random() * window.innerHeight;
-                        angle = Math.PI + (Math.random() - 0.5) * Math.PI / 2; // Leftward ±45°
+                        angle = Math.PI + (Math.random() - 0.5) * Math.PI / 2;
                         break;
                     case 2: // Bottom
                         startX = Math.random() * window.innerWidth;
-                        startY = window.innerHeight + castLength;
-                        angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 2; // Upward ±45°
+                        startY = window.innerHeight;
+                        angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI / 2;
                         break;
                     case 3: // Left
                         startX = -castLength;
                         startY = Math.random() * window.innerHeight;
-                        angle = (Math.random() - 0.5) * Math.PI / 2; // Rightward ±45°
+                        angle = (Math.random() - 0.5) * Math.PI / 2;
                         break;
                 }
 
@@ -277,11 +265,10 @@
             }, 1000 / rate);
         }
 
-        // Game loop
         function gameLoop() {
             if (!gameActive) return;
 
-            // Move player toward target
+            // Move player
             const dx = targetX - playerX;
             const dy = targetY - playerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
@@ -296,13 +283,14 @@
             }
 
             // Move casts
-            casts.forEach((cast, index) => {
+            for (let i = casts.length - 1; i >= 0; i--) {
+                const cast = casts[i];
                 cast.x += Math.cos(cast.angle) * (castSpeed / 60);
                 cast.y += Math.sin(cast.angle) * (castSpeed / 60);
                 cast.element.style.left = `${cast.x}px`;
                 cast.element.style.top = `${cast.y}px`;
 
-                // Check collision with player
+                // Collision check
                 const playerRect = player.getBoundingClientRect();
                 const castRect = cast.element.getBoundingClientRect();
                 if (rectIntersect(playerRect, castRect)) {
@@ -310,7 +298,7 @@
                     return;
                 }
 
-                // Remove casts when fully off-screen
+                // Remove off-screen casts
                 const endX = cast.x + castLength * Math.cos(cast.angle);
                 const endY = cast.y + castLength * Math.sin(cast.angle);
                 if (endX < 0 && cast.x < 0 || 
@@ -318,14 +306,13 @@
                     endY < 0 && cast.y < 0 || 
                     endY > window.innerHeight && cast.y > window.innerHeight) {
                     cast.element.remove();
-                    casts.splice(index, 1);
+                    casts.splice(i, 1);
                 }
-            });
+            }
 
             requestAnimationFrame(gameLoop);
         }
 
-        // Collision detection
         function rectIntersect(r1, r2) {
             return !(r2.left > r1.right || 
                      r2.right < r1.left || 
@@ -333,7 +320,6 @@
                      r2.bottom < r1.top);
         }
 
-        // End game
         function endGame() {
             gameActive = false;
             clearInterval(timerInterval);
@@ -344,7 +330,6 @@
             navBar.style.display = 'block';
         }
 
-        // Reset game
         function resetGame() {
             playerX = window.innerWidth / 2 - 10;
             playerY = window.innerHeight / 2 - 10;
@@ -355,7 +340,7 @@
             timerDisplay.textContent = 'Time: 0.00s';
         }
 
-        // Start game loop
+        // Start the game loop initially
         requestAnimationFrame(gameLoop);
     </script>
 </body>

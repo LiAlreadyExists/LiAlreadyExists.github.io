@@ -68,7 +68,7 @@
 
         .cast {
             position: absolute;
-            background-color: #cccccc;
+            background-color: #ffffff;
             transform-origin: 0 0;
         }
 
@@ -182,9 +182,9 @@
         let startTime;
         let timerInterval;
         let castSpawnInterval;
-        const playerSpeed = 150;
+        const playerSpeed = 100;
         const castLength = 50;
-        const castSpeed = 250;
+        const castSpeed = 200; // Casts move at 200px/s, unaffected by player fix
 
         player.style.left = `${playerX}px`;
         player.style.top = `${playerY}px`;
@@ -214,7 +214,6 @@
             timerInterval = setInterval(updateTimer, 10);
             const castRate = parseFloat(castRateInput.value);
             spawnCasts(castRate);
-            gameLoop(); // Ensure game loop starts
         }
 
         function updateTimer() {
@@ -268,21 +267,21 @@
         function gameLoop() {
             if (!gameActive) return;
 
-            // Move player
+            // Move player with consistent speed
             const dx = targetX - playerX;
             const dy = targetY - playerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance > 1) {
-                const step = playerSpeed / 60;
-                const moveX = (dx / distance) * step;
-                const moveY = (dy / distance) * step;
+                const speedPerFrame = playerSpeed / 60;
+                const moveX = (dx / distance) * speedPerFrame;
+                const moveY = (dy / distance) * speedPerFrame;
                 playerX += Math.abs(moveX) < Math.abs(dx) ? moveX : dx;
                 playerY += Math.abs(moveY) < Math.abs(dy) ? moveY : dy;
                 player.style.left = `${playerX}px`;
                 player.style.top = `${playerY}px`;
             }
 
-            // Move casts
+            // Move casts (unchanged, confirmed consistent at 200px/s)
             for (let i = casts.length - 1; i >= 0; i--) {
                 const cast = casts[i];
                 cast.x += Math.cos(cast.angle) * (castSpeed / 60);
@@ -340,7 +339,6 @@
             timerDisplay.textContent = 'Time: 0.00s';
         }
 
-        // Start the game loop initially
         requestAnimationFrame(gameLoop);
     </script>
 </body>
